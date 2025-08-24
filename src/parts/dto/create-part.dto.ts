@@ -6,14 +6,12 @@ import {
     IsString,
     Min,
     ValidateNested,
-    Validate,
-    ValidateIf,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import { PartType } from 'src/parts/parts-type.enum';
-import { IsPartsValidConstraint } from 'src/parts/validators/is-parts-valid.validator';
 
+// ---------------- Constituency -----------------
 class ConstituencyDto {
     @ApiProperty({ description: 'ID of the part' })
     @IsString()
@@ -25,29 +23,36 @@ class ConstituencyDto {
     quantity: number;
 }
 
-export class CreatePartDto {
+// ---------------- Base -----------------
+export class BasePartDto {
     @ApiProperty({ description: 'Name of the part' })
     @IsString()
     @IsNotEmpty()
     name: string;
 
-    @ApiProperty({
-        enum: PartType,
-        example: PartType.RAW,
-        description: 'Type of the part (RAW or ASSEMBLED)',
-    })
+    @ApiProperty({ enum: PartType })
     @IsEnum(PartType)
     type: PartType;
+}
 
-    @ApiPropertyOptional({
-        description: 'Constituent parts (required if ASSEMBLED, forbidden if RAW)',
+// ---------------- RAW -----------------
+export class RawPartDto extends BasePartDto {
+    @ApiProperty({ enum: [PartType.RAW], example: PartType.RAW })
+    type: PartType.RAW;
+}
+
+// ---------------- ASSEMBLED -----------------
+export class AssembledPartDto extends BasePartDto {
+    @ApiProperty({ enum: [PartType.ASSEMBLED], example: PartType.ASSEMBLED })
+    type: PartType.ASSEMBLED;
+
+    @ApiProperty({
+        description: 'Constituent parts (required if ASSEMBLED)',
         type: [ConstituencyDto],
     })
-    @Validate(IsPartsValidConstraint)
-    @ValidateIf(o => o.parts !== null && o.parts !== undefined)
     @IsArray()
     @ArrayNotEmpty()
     @ValidateNested({ each: true })
     @Type(() => ConstituencyDto)
-    parts?: ConstituencyDto[];
+    parts: ConstituencyDto[];
 }

@@ -1,10 +1,11 @@
-import { Body, Controller, Get, HttpException, HttpStatus, Param, Patch, Post, Query, Logger } from '@nestjs/common';
-import { PartsService } from 'src/parts/parts.service';
-import { CreatePartDto } from 'src/parts/dto/create-part.dto';
-import { AddQuantityDto } from 'src/parts/dto/add-quantity.dto';
-import { ApiBody, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, HttpStatus, Logger, Param, Post, Query } from '@nestjs/common';
+import { PartsService } from './parts.service';
+import { AddQuantityDto } from './dto/add-quantity.dto';
+import { AssembledPartDto, RawPartDto } from './dto/create-part.dto';
+import { ApiBody, ApiExtraModels, ApiOperation, ApiQuery, ApiResponse, ApiTags, getSchemaPath } from '@nestjs/swagger';
 
 @ApiTags('Part')
+@ApiExtraModels(RawPartDto, AssembledPartDto)
 @Controller('part')
 export class PartsController {
   private readonly logger = new Logger(PartsController.name);
@@ -13,9 +14,16 @@ export class PartsController {
 
   @Post()
   @ApiOperation({ summary: 'Create raw or assembled part' })
-  @ApiBody({ type: CreatePartDto })
+  @ApiBody({
+    schema: {
+      oneOf: [
+        { $ref: getSchemaPath(RawPartDto) },
+        { $ref: getSchemaPath(AssembledPartDto) }
+      ],
+    },
+  })
   @ApiResponse({ status: 201, description: 'Part created successfully' })
-  async createPart(@Body() dto: CreatePartDto) {
+  async createPart(@Body() dto: RawPartDto | AssembledPartDto) {
     try {
       const created = await this.partsService.createPart(dto);
       return {
@@ -26,7 +34,6 @@ export class PartsController {
           parts: created.parts ?? [],
         },
         message: 'Part created successfully',
-        statusCode: HttpStatus.CREATED,
       };
     } catch (error) {
       this.logger.error('Error creating part', error);
@@ -40,7 +47,6 @@ export class PartsController {
 
   @Post(':id')
   @ApiOperation({ summary: 'Add quantity to a part' })
-  @ApiBody({ type: AddQuantityDto })
   @ApiResponse({ status: 200, description: 'Quantity updated successfully' })
   async addQuantity(@Param('id') partId: string, @Body() dto: AddQuantityDto) {
     try {
@@ -48,7 +54,6 @@ export class PartsController {
       return {
         data: res.status,
         message: 'Quantity updated successfully',
-        statusCode: HttpStatus.OK,
       };
     } catch (error) {
       this.logger.error(`Error adding quantity to part ${partId}`, error);
@@ -71,7 +76,6 @@ export class PartsController {
         data: res.data,
         count: res.total,
         message: 'Parts fetched successfully',
-        statusCode: HttpStatus.OK,
       };
     } catch (error) {
       this.logger.error('Error fetching parts', error);

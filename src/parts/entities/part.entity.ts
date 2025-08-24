@@ -1,11 +1,11 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
-import { PartType } from 'src/parts/parts-type.enum';
+import { PartType } from '../parts-type.enum';
 
 export type PartDocument = Part & Document;
 
 export class Constituency {
-    id: string;
+    id: string;      // reference to Part._id
     quantity: number;
 }
 
@@ -22,6 +22,14 @@ export class Part {
 
     @Prop({ type: [Constituency], default: [] })
     parts: Constituency[];
+
+    isRaw(): boolean {
+        return this.type === PartType.RAW;
+    }
+
+    isAssembled(): boolean {
+        return this.type === PartType.ASSEMBLED;
+    }
 }
 
 export const PartSchema = SchemaFactory.createForClass(Part);
